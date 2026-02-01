@@ -9,77 +9,157 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         const targetElement = document.querySelector(targetId);
         if (targetElement) {
             window.scrollTo({
-                top: targetElement.offsetTop - 100,
+                top: targetElement.offsetTop - 80,
                 behavior: 'smooth'
             });
         }
     });
 });
 
-// Форма предложения идей
+// Форма идей
 document.getElementById('ideaForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const formData = {
-        name: document.getElementById('idea-name').value,
-        contact: document.getElementById('idea-contact').value,
-        type: document.getElementById('idea-type').value,
-        text: document.getElementById('idea-text').value,
-        date: new Date().toLocaleString('ru-RU')
+        name: document.getElementById('ideaName').value,
+        contact: document.getElementById('ideaContact').value,
+        type: document.getElementById('ideaType').value,
+        text: document.getElementById('ideaText').value
     };
     
-    const submitBtn = this.querySelector('.submit-btn');
-    const originalText = submitBtn.innerHTML;
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalHTML = submitBtn.innerHTML;
     
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправка...';
     submitBtn.disabled = true;
     
-    // Создаем ссылку для отправки на почту
-    const subject = `Идея для стрима: ${formData.type}`;
-    const body = `
-Имя: ${formData.name}
-Контакты: ${formData.contact}
-Тип: ${formData.type}
-Дата: ${formData.date}
-
-Идея:
-${formData.text}
-    `.trim();
+    // Создаем письмо
+    const subject = `Идея для стрима от ${formData.name}`;
+    const body = `Тип: ${formData.type}\nКонтакты: ${formData.contact}\n\nИдея:\n${formData.text}`;
     
     const mailtoLink = `mailto:xorame.x.x@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
     // Открываем почтовый клиент
     setTimeout(() => {
-        window.location.href = mailtoLink;
+        window.open(mailtoLink, '_blank');
         
-        // Через 3 секунды возвращаем кнопку
+        // Сбрасываем форму
         setTimeout(() => {
-            submitBtn.innerHTML = originalText;
+            this.reset();
+            submitBtn.innerHTML = originalHTML;
             submitBtn.disabled = false;
             
-            // Показываем сообщение об успехе
-            alert('Спасибо за идею! Проверьте ваш почтовый клиент. Если письмо не открылось, отправьте его вручную на xorame.x.x@gmail.com');
-        }, 3000);
-    }, 1000);
+            // Показываем уведомление
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <span>Спасибо за идею! Проверьте ваш почтовый клиент.</span>
+            `;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--primary-color);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                z-index: 9999;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }, 1000);
+    }, 500);
+});
+
+// Тайпинг эффект в терминале
+const terminalLines = [
+    "whoami",
+    "fastfetch",
+    "cat about.txt",
+    "help --moderation",
+    "status --online"
+];
+
+let lineIndex = 0;
+let charIndex = 0;
+let isDeleting = false;
+
+function typeEffect() {
+    const cursor = document.querySelector('.cursor');
+    const promptElement = cursor?.previousElementSibling;
+    
+    if (!promptElement || !cursor) return;
+    
+    const currentLine = terminalLines[lineIndex];
+    
+    if (!isDeleting) {
+        if (charIndex < currentLine.length) {
+            promptElement.textContent += currentLine.charAt(charIndex);
+            charIndex++;
+            setTimeout(typeEffect, 60);
+        } else {
+            isDeleting = true;
+            setTimeout(typeEffect, 2000);
+        }
+    } else {
+        if (charIndex > 0) {
+            promptElement.textContent = promptElement.textContent.slice(0, -1);
+            charIndex--;
+            setTimeout(typeEffect, 40);
+        } else {
+            isDeleting = false;
+            lineIndex = (lineIndex + 1) % terminalLines.length;
+            setTimeout(typeEffect, 500);
+        }
+    }
+}
+
+// Анимации при скролле
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in');
+        }
+    });
+}, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+});
+
+// Наблюдаем за карточками
+document.querySelectorAll('.feature, .card, .skill-category, .contact-card').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s, transform 0.5s';
+    observer.observe(el);
 });
 
 // Анимация статистики
 const statsObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
-            const statNumbers = document.querySelectorAll('.stat-number');
-            statNumbers.forEach(stat => {
+            const stats = document.querySelectorAll('.stat-number');
+            stats.forEach(stat => {
                 const text = stat.textContent;
                 if (text.includes('+')) {
-                    // Анимация для чисел с плюсом
-                    const baseNumber = parseInt(text);
+                    const num = parseInt(text);
                     let current = 0;
-                    const increment = baseNumber / 20;
+                    const step = num / 30;
                     
                     const timer = setInterval(() => {
-                        current += increment;
-                        if (current >= baseNumber) {
-                            current = baseNumber;
+                        current += step;
+                        if (current >= num) {
+                            current = num;
                             clearInterval(timer);
                         }
                         stat.textContent = Math.floor(current) + '+';
@@ -91,110 +171,32 @@ const statsObserver = new IntersectionObserver((entries) => {
     });
 }, { threshold: 0.5 });
 
-const statsSection = document.querySelector('.hero-stats');
+const statsSection = document.querySelector('.stats');
 if (statsSection) {
     statsObserver.observe(statsSection);
 }
 
-// Анимация при скролле
-const observerOptions = {
-    threshold: 0.1
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in');
-        }
-    });
-}, observerOptions);
-
-document.querySelectorAll('.mod-card, .feature, .contact-card').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(30px)';
-    el.style.transition = 'opacity 0.6s, transform 0.6s';
-    
-    observer.observe(el);
-});
-
-// Добавляем CSS для анимации
-const style = document.createElement('style');
-style.textContent = `
-    .animate-in {
-        opacity: 1 !important;
-        transform: translateY(0) !important;
-    }
-`;
-document.head.appendChild(style);
-
-// Тайпинг эффект в терминале
-const terminalLines = [
-    "whoami",
-    "cat role.txt",
-    "cat experience.txt", 
-    "cat contacts.txt",
-    "help --moderation",
-    "status --online"
-];
-
-let lineIndex = 0;
-let charIndex = 0;
-let isDeleting = false;
-const typingSpeed = 60;
-const deletingSpeed = 40;
-const pauseBetweenLines = 2000;
-
-function typeEffect() {
-    const cursor = document.querySelector('.cursor');
-    const promptElement = cursor ? cursor.previousElementSibling : null;
-    
-    if (!promptElement || !cursor) return;
-    
-    const currentLine = terminalLines[lineIndex];
-    
-    if (!isDeleting) {
-        if (charIndex < currentLine.length) {
-            promptElement.textContent += currentLine.charAt(charIndex);
-            charIndex++;
-            setTimeout(typeEffect, typingSpeed);
-        } else {
-            isDeleting = true;
-            setTimeout(typeEffect, pauseBetweenLines);
-        }
-    } else {
-        if (charIndex > 0) {
-            promptElement.textContent = promptElement.textContent.slice(0, -1);
-            charIndex--;
-            setTimeout(typeEffect, deletingSpeed);
-        } else {
-            isDeleting = false;
-            lineIndex = (lineIndex + 1) % terminalLines.length;
-            setTimeout(typeEffect, 300);
-        }
-    }
-}
-
-// Запуск после загрузки
+// Запуск при загрузке
 window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(typeEffect, 1500);
+    setTimeout(typeEffect, 1000);
     
-    // Добавляем анимацию гирлянде
-    const garland = document.querySelector('.garland');
-    if (garland) {
-        setInterval(() => {
-            garland.style.background = `linear-gradient(90deg, 
-                transparent 0%, 
-                ${Math.random() > 0.5 ? 'var(--primary-color)' : 'var(--accent-color)'} 10%,
-                ${Math.random() > 0.5 ? 'var(--accent-color)' : 'var(--primary-color)'} 20%,
-                ${Math.random() > 0.5 ? 'var(--primary-color)' : 'var(--accent-color)'} 30%,
-                ${Math.random() > 0.5 ? 'var(--accent-color)' : 'var(--primary-color)'} 40%,
-                ${Math.random() > 0.5 ? 'var(--primary-color)' : 'var(--accent-color)'} 50%,
-                ${Math.random() > 0.5 ? 'var(--accent-color)' : 'var(--primary-color)'} 60%,
-                ${Math.random() > 0.5 ? 'var(--primary-color)' : 'var(--accent-color)'} 70%,
-                ${Math.random() > 0.5 ? 'var(--accent-color)' : 'var(--primary-color)'} 80%,
-                ${Math.random() > 0.5 ? 'var(--primary-color)' : 'var(--accent-color)'} 90%,
-                transparent 100%
-            )`;
-        }, 5000);
-    }
+    // Добавляем стили для уведомлений
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .animate-in {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+    `;
+    document.head.appendChild(style);
 });

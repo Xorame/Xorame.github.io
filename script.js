@@ -61,4 +61,103 @@ const observer = new IntersectionObserver((entries) => {
 }, observerOptions);
 
 // Добавляем анимацию для карточек
-document.querySelectorAll('.service-card, .project-card, .skill-category
+document.querySelectorAll('.service-card, .project-card, .skill-category').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s, transform 0.5s';
+    
+    observer.observe(el);
+    
+    // Класс для анимации
+    el.classList.add('animate-on-scroll');
+});
+
+// Добавляем CSS для анимации
+const style = document.createElement('style');
+style.textContent = `
+    .animate-on-scroll.animate-in {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+    }
+`;
+document.head.appendChild(style);
+
+// Тайпинг эффект в терминале
+const terminalLines = [
+    "whoami",
+    "cat specialization.txt",
+    "ls -la projects/",
+    "tail -f twitch_logs.txt"
+];
+
+let lineIndex = 0;
+let charIndex = 0;
+let isDeleting = false;
+const typingSpeed = 50;
+const deletingSpeed = 30;
+const pauseBetweenLines = 1500;
+
+function typeEffect() {
+    const currentLine = terminalLines[lineIndex];
+    const promptElement = document.querySelector('.cursor').previousElementSibling;
+    
+    if (!isDeleting) {
+        if (charIndex < currentLine.length) {
+            promptElement.textContent += currentLine.charAt(charIndex);
+            charIndex++;
+            setTimeout(typeEffect, typingSpeed);
+        } else {
+            isDeleting = true;
+            setTimeout(typeEffect, pauseBetweenLines);
+        }
+    } else {
+        if (charIndex > 0) {
+            promptElement.textContent = promptElement.textContent.slice(0, -1);
+            charIndex--;
+            setTimeout(typeEffect, deletingSpeed);
+        } else {
+            isDeleting = false;
+            lineIndex = (lineIndex + 1) % terminalLines.length;
+            setTimeout(typeEffect, 500);
+        }
+    }
+}
+
+// Запускаем эффект после загрузки
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(typeEffect, 1000);
+});
+
+// Обновление статуса проектов
+document.querySelectorAll('.project-status').forEach(status => {
+    const text = status.textContent.trim();
+    status.setAttribute('data-status', text);
+});
+
+// Анимация для статистики
+const statsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const statNumbers = document.querySelectorAll('.stat-number');
+            statNumbers.forEach(stat => {
+                const target = parseInt(stat.textContent);
+                let current = 0;
+                const increment = target / 50;
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    stat.textContent = Math.floor(current) + (stat.textContent.includes('∞') ? '' : '+');
+                }, 30);
+            });
+            statsObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.5 });
+
+const statsSection = document.querySelector('.stats');
+if (statsSection) {
+    statsObserver.observe(statsSection);
+}
